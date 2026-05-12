@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<!-- saved from url=(0164)file:///C:/Users/yongkyu/Desktop/%EB%B3%B5%EC%88%98%EC%98%88%EA%B0%80%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%A8/%EC%9E%A5%EC%9D%B8%EB%B9%84%EB%93%9C%20v2202605121030.html -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>장인비드v2 [장인이앤씨 개발]</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;padding:1.5rem}
+.container{max-width:1400px;margin:0 auto}
+h1{font-size:1.4rem;font-weight:700;margin-bottom:1rem;text-align:center}
+.panel{background:#fff;border:1px solid #ddd;border-radius:12px;padding:1rem;margin-bottom:1rem}
+.panel-title{font-size:11px;color:#888;font-weight:700;margin-bottom:10px;text-transform:uppercase}
+.ctrl-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.radio-group{display:flex;gap:10px;background:#f9f9f9;padding:6px 12px;border-radius:8px;border:1px solid #eee}
+input[type="number"],.input-prob{width:70px;padding:6px;border:1px solid #ddd;border-radius:6px;text-align:center}
+button{padding:8px 14px;border:none;border-radius:8px;background:#378add;color:white;font-weight:700;cursor:pointer}
+.btn-green{background:#28a745}
+.btn-save{background:#6f42c1}
+.btn-real{background:#ff9800}
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.chart-wrap{position:relative;height:260px;background:#fafafa;border-radius:8px;overflow:hidden}
+canvas{display:block}
+.num-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.num-item{padding:6px;background:#f9f9f9;border-radius:4px;font-size:10px;text-align:center;border:1px solid #eee}
+.num-item.selected{background:#e3f2fd;border-color:#378add;color:#378add;font-weight:700}
+.avg-display{margin-top:10px;text-align:right;font-weight:700;color:#378add}
+.prob-table{width:100%;border-collapse:collapse;font-size:11px;min-width:1000px}
+.prob-table th,.prob-table td{padding:8px;border:1px solid #eee;text-align:center}
+.prob-table th{background:#f9f9f9}
+.row-title{font-weight:700;background:#fafafa}
+.val-real{color:#28a745;font-weight:700}
+.diff-plus{color:#d73a49;font-weight:700}
+.diff-minus{color:#0366d6;font-weight:700}
+.avoid-low{background:#dbeeff;color:#0366d6;font-weight:700}
+.avoid-high{background:#ffe0e0;color:#d73a49;font-weight:700}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #eee;font-size:12px;gap:10px}
+.history-date{width:170px;font-weight:700;color:#666}
+.history-data{flex:1}
+.history-btns button{font-size:11px;padding:5px 8px;margin-left:4px}
+.score-good{color:#28a745;font-weight:700}
+.score-bad{color:#d73a49;font-weight:700}
+.save-meta{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.save-meta label{font-size:11px;color:#888;font-weight:700}
+.save-meta input[type="text"]{padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;width:180px}
+.save-meta input[type="number"]{width:90px;padding:6px;border:1px solid #ddd;border-radius:6px;text-align:center;font-size:12px}
+.history-meta{font-size:11px;color:#888;margin-top:3px}
+.history-meta span{margin-right:12px}
+.history-meta .rate-val{font-weight:700;color:#378add}
+.history-meta .rate-result{font-weight:700;color:#28a745}
+.meta-tag{display:inline-block;background:#f0f4ff;color:#378add;border-radius:4px;padding:2px 7px;font-weight:700;font-size:11px;margin-right:6px}
+.chart-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#bbb;font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>장인비드v2 [장인이앤씨 개발]</h1>
+
+<div class="panel">
+  <div class="ctrl-row">
+    <div class="radio-group">
+      <label><input type="radio" name="rangeLimit" value="2"> ±2%</label>
+      <label><input type="radio" name="rangeLimit" value="3" checked=""> ±3%</label>
+    </div>
+    <label>업체수(b)</label>
+    <input type="number" id="bInput" value="20">
+    <button onclick="runManual()">▶ 1회 실행</button>
+    <button class="btn-green" onclick="runAuto30000()">⚡ 30,000회 분석</button>
+    <button onclick="resetAll()" style="background:#666">초기화</button>
+    <button onclick="drawAllCharts()" style="background:#e67e22">📊 그래프 그리기</button>
+  </div>
+</div>
+
+<div class="main-grid">
+  <div>
+    <div class="panel">
+      <div class="panel-title">LIVE DATA</div>
+      <div class="chart-wrap"><canvas id="manualChart" width="659" height="260" style="display: block;"></canvas><div id="manualEmpty" class="chart-empty" style="display: none;">실행 버튼을 눌러주세요</div></div>
+    </div>
+    <div class="panel">
+      <div id="aDisplay" class="num-grid"><div class="num-item ">-1.8779</div><div class="num-item ">1.5699</div><div class="num-item ">0.3542</div><div class="num-item ">-1.8837</div><div class="num-item ">-0.7687</div><div class="num-item ">-0.6277</div><div class="num-item ">-0.6905</div><div class="num-item ">1.1307</div><div class="num-item selected">-1.8202</div><div class="num-item ">-1.3076</div><div class="num-item selected">0.5200</div><div class="num-item ">-1.7315</div><div class="num-item selected">-1.7982</div><div class="num-item selected">-1.5032</div><div class="num-item ">1.9319</div></div>
+      <div id="cDisplay" class="num-grid" style="grid-template-columns:repeat(4,1fr);margin-top:10px"><div class="num-item selected">-1.8202</div><div class="num-item selected">-1.5032</div><div class="num-item selected">-1.7982</div><div class="num-item selected">0.5200</div></div>
+      <div id="avgResult" class="avg-display">선택된 4개 평균(C): -1.1504%</div>
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <div class="panel-title">30,000 SAMPLE DISTRIBUTION</div>
+      <div class="chart-wrap"><canvas id="autoChart" width="659" height="260" style="display: block;"></canvas><div id="autoEmpty" class="chart-empty" style="display: none;">30,000회 분석을 실행해주세요</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">THEORY CURVE</div>
+      <div class="chart-wrap"><canvas id="theoryChart" width="659" height="260" style="display: block;"></canvas><div id="theoryEmpty" class="chart-empty" style="display: none;">실행 버튼을 눌러주세요</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="overflow-x:auto">
+  <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center">
+    <span>구간별 예측 검증 / 비선호 분석</span>
+    <button class="btn-save" onclick="saveHistory()">💾 현재 예측 저장</button>
+  </div>
+  <div class="save-meta">
+    <label>📋 프로젝트명</label>
+    <input type="text" id="projectName" placeholder="프로젝트명 입력" style="width:220px">
+    <label>📊 예상 사정율(%)</label>
+    <input type="number" id="expectedRate" placeholder="예: 87.5" step="0.01">
+    <label>✅ 결과 사정율(%)</label>
+    <input type="number" id="resultRate" placeholder="낙찰 후 입력" step="0.01">
+  </div>
+  <table class="prob-table">
+    <thead><tr id="probHeader"><th>구간</th><th>-2.0~-1.2</th><th>-1.2~-0.8</th><th>-0.8~-0.4</th><th>-0.4~0.0</th><th>0.0~0.4</th><th>0.4~0.8</th><th>0.8~1.2</th><th>1.2~2.0</th></tr></thead>
+    <tbody>
+      <tr id="row-user"><td class="row-title">예측(%)</td><td><input type="number" class="input-prob" id="u-0" oninput="calcDiff(0)"></td><td><input type="number" class="input-prob" id="u-1" oninput="calcDiff(1)"></td><td><input type="number" class="input-prob" id="u-2" oninput="calcDiff(2)"></td><td><input type="number" class="input-prob" id="u-3" oninput="calcDiff(3)"></td><td><input type="number" class="input-prob" id="u-4" oninput="calcDiff(4)"></td><td><input type="number" class="input-prob" id="u-5" oninput="calcDiff(5)"></td><td><input type="number" class="input-prob" id="u-6" oninput="calcDiff(6)"></td><td><input type="number" class="input-prob" id="u-7" oninput="calcDiff(7)"></td></tr>
+      <tr id="row-real"><td class="row-title">실제(%)</td><td class="val-real" id="r-0">1.69%</td><td class="val-real" id="r-1">6.86%</td><td class="val-real" id="r-2">16.70%</td><td class="val-real" id="r-3">24.42%</td><td class="val-real" id="r-4">24.90%</td><td class="val-real" id="r-5">16.77%</td><td class="val-real" id="r-6">6.91%</td><td class="val-real" id="r-7">1.75%</td></tr>
+      <tr id="row-diff"><td class="row-title">오차</td><td id="d-0">-</td><td id="d-1">-</td><td id="d-2">-</td><td id="d-3">-</td><td id="d-4">-</td><td id="d-5">-</td><td id="d-6">-</td><td id="d-7">-</td></tr>
+      <tr id="row-avoid"><td class="row-title">비선호도</td><td id="a-0">-</td><td id="a-1">-</td><td id="a-2">-</td><td id="a-3">-</td><td id="a-4">-</td><td id="a-5">-</td><td id="a-6">-</td><td id="a-7">-</td></tr>
+    </tbody>
+  </table>
+  <div id="historyList" style="margin-top:20px"><div class="panel-title">PREDICTION HISTORY</div><div class="history-item">
+      <div class="history-date">2026. 5. 12. 오전 11:01:58</div>
+      <div class="history-data">
+        <div><span class="meta-tag">26-a-00부대시설공사</span></div>
+        <div class="history-meta">
+          <span>예상 사정율: <span class="rate-val">-1.0495%</span></span>
+          <span>결과 사정율: <span class="rate-result" id="rr-1778551318609">미입력</span></span>
+        </div>
+        <div>예측: 0.24% | 3.21% | 14.63% | 22.95% | 28.18% | 20.93% | 7.73% | 1.66%</div>
+        <div>오차: -</div>
+        <div class="">결과 대기중</div>
+      </div>
+      <div class="history-btns">
+        <button onclick="loadHistory(1778551318609)">불러오기</button>
+        <button class="btn-real" onclick="inputActual(1778551318609)">실제값 입력</button>
+        <button style="background:#e8f5e9;color:#28a745;border:1px solid #a5d6a7" onclick="inputResultRate(1778551318609)">사정율 입력</button>
+        <button style="background:#ffdddd;color:#d73a49" onclick="deleteHistory(1778551318609)">삭제</button>
+      </div></div><div class="history-item">
+      <div class="history-date">2026. 5. 12. 오전 10:19:57</div>
+      <div class="history-data">
+        <div><span class="meta-tag">미장면 체육공원</span></div>
+        <div class="history-meta">
+          <span>예상 사정율: <span class="rate-val">1.1919%</span></span>
+          <span>결과 사정율: <span class="rate-result" id="rr-1778548797905">미입력</span></span>
+        </div>
+        <div>예측: 0% | 2.74% | 13.36% | 25.68% | 29.91% | 19.86% | 6.39% | 1.6%</div>
+        <div>오차: -</div>
+        <div class="">결과 대기중</div>
+      </div>
+      <div class="history-btns">
+        <button onclick="loadHistory(1778548797905)">불러오기</button>
+        <button class="btn-real" onclick="inputActual(1778548797905)">실제값 입력</button>
+        <button style="background:#e8f5e9;color:#28a745;border:1px solid #a5d6a7" onclick="inputResultRate(1778548797905)">사정율 입력</button>
+        <button style="background:#ffdddd;color:#d73a49" onclick="deleteHistory(1778548797905)">삭제</button>
+      </div></div><div class="history-item">
+      <div class="history-date">2026. 5. 12. 오전 10:17:26</div>
+      <div class="history-data">
+        <div><span class="meta-tag">다목적교회</span></div>
+        <div class="history-meta">
+          <span>예상 사정율: <span class="rate-val">-0.4552%</span></span>
+          <span>결과 사정율: <span class="rate-result" id="rr-1778548646953">0.9805%</span></span>
+        </div>
+        <div>예측: 1% | 1% | 1% | 1% | 1% | 1% | 1% | 1%</div>
+        <div>오차: -</div>
+        <div class="">결과 대기중</div>
+      </div>
+      <div class="history-btns">
+        <button onclick="loadHistory(1778548646953)">불러오기</button>
+        <button class="btn-real" onclick="inputActual(1778548646953)">실제값 입력</button>
+        <button style="background:#e8f5e9;color:#28a745;border:1px solid #a5d6a7" onclick="inputResultRate(1778548646953)">사정율 입력</button>
+        <button style="background:#ffdddd;color:#d73a49" onclick="deleteHistory(1778548646953)">삭제</button>
+      </div></div><div class="history-item">
+      <div class="history-date">2026. 5. 12. 오전 10:14:54</div>
+      <div class="history-data">
+        <div><span class="meta-tag">서울대학교시흥</span></div>
+        <div class="history-meta">
+          <span>예상 사정율: <span class="rate-val">0.234%</span></span>
+          <span>결과 사정율: <span class="rate-result" id="rr-1778548494977">0.3849%</span></span>
+        </div>
+        <div>예측: 0% | 2.74% | 13.36% | 25.68% | 29.91% | 19.86% | 6.39% | 1.6%</div>
+        <div>오차: -</div>
+        <div class="">결과 대기중</div>
+      </div>
+      <div class="history-btns">
+        <button onclick="loadHistory(1778548494977)">불러오기</button>
+        <button class="btn-real" onclick="inputActual(1778548494977)">실제값 입력</button>
+        <button style="background:#e8f5e9;color:#28a745;border:1px solid #a5d6a7" onclick="inputResultRate(1778548494977)">사정율 입력</button>
+        <button style="background:#ffdddd;color:#d73a49" onclick="deleteHistory(1778548494977)">삭제</button>
+      </div></div></div>
+</div>
+
+<div class="panel">
+  <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <span>📈 사정율 추이 그래프 (예상 vs 결과 / 갭 차이)</span>
+    <div style="display:flex;gap:16px;font-size:11px;align-items:center;color:#555">
+      <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:22px;height:3px;background:#378add;border-radius:2px"></span>예상 사정율</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:22px;height:3px;background:#28a745;border-radius:2px"></span>결과 사정율</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:22px;height:3px;background:#ff6384;border-radius:2px"></span>갭 차이</span>
+    </div>
+  </div>
+  <div style="height:320px;position:relative"><canvas id="rateChart" width="1366" height="320" style="display: block;"></canvas><div id="rateEmpty" class="chart-empty" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; display: none;">저장된 사정율 데이터가 없습니다</div></div>
+  <div id="rateStats" style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;font-size:12px;padding-top:10px;border-top:1px solid #eee"><div style="background:#f9f9f9;border-radius:8px;padding:8px 14px;border:1px solid #eee;text-align:center"><div style="font-size:10px;color:#999;margin-bottom:3px">평균 갭 (결과-예상)</div><div style="font-weight:700;font-size:15px;color:#d73a49">+0.793%</div></div><div style="background:#f9f9f9;border-radius:8px;padding:8px 14px;border:1px solid #eee;text-align:center"><div style="font-size:10px;color:#999;margin-bottom:3px">평균 절대 오차</div><div style="font-weight:700;font-size:15px;color:#888">0.793%</div></div><div style="background:#f9f9f9;border-radius:8px;padding:8px 14px;border:1px solid #eee;text-align:center"><div style="font-size:10px;color:#999;margin-bottom:3px">최대 갭 (과소예측)</div><div style="font-weight:700;font-size:15px;color:#d73a49">+1.436%</div></div><div style="background:#f9f9f9;border-radius:8px;padding:8px 14px;border:1px solid #eee;text-align:center"><div style="font-size:10px;color:#999;margin-bottom:3px">최소 갭 (과대예측)</div><div style="font-weight:700;font-size:15px;color:#0366d6">0.151%</div></div><div style="background:#f0f8ff;border-radius:8px;padding:8px 14px;border:1px solid #d0e8ff;text-align:center"><div style="font-size:10px;color:#999;margin-bottom:3px">분석 건수</div><div style="font-weight:700;font-size:15px;color:#378add">2건</div></div></div>
+</div>
+</div>
+
+<script>
+// ===================== Canvas Chart Engine =====================
+function drawBarChart(canvasId, labels, values, color, emptyId) {
+  const canvas = document.getElementById(canvasId);
+  const empty = document.getElementById(emptyId);
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  const W = wrap.clientWidth || 600;
+  const H = wrap.clientHeight || 260;
+  canvas.width = W; canvas.height = H;
+  canvas.style.display = 'block';
+  if (empty) empty.style.display = 'none';
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = {top:20, right:15, bottom:35, left:45};
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+  const max = Math.max(...values, 1);
+  const barW = cW / values.length;
+
+  // grid lines
+  ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + cH - (cH * i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+    ctx.fillStyle = '#aaa'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(max * i / 4), pad.left - 4, y + 3);
+  }
+
+  // bars
+  ctx.fillStyle = color;
+  values.forEach((v, i) => {
+    const bH = (v / max) * cH;
+    ctx.fillRect(pad.left + i * barW + 1, pad.top + cH - bH, barW - 2, bH);
+  });
+
+  // x labels (every ~8)
+  ctx.fillStyle = '#888'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  const step = Math.ceil(labels.length / 8);
+  labels.forEach((l, i) => {
+    if (i % step === 0) ctx.fillText(l, pad.left + i * barW + barW / 2, H - 8);
+  });
+
+  // axes
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + cH); ctx.lineTo(pad.left + cW, pad.top + cH); ctx.stroke();
+}
+
+function drawLineChart(canvasId, datasets, emptyId) {
+  // datasets: [{labels, values, color, fill, dash}]
+  const canvas = document.getElementById(canvasId);
+  const empty = document.getElementById(emptyId);
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  const W = wrap.clientWidth || 600;
+  const H = wrap.clientHeight || 260;
+  canvas.width = W; canvas.height = H;
+  canvas.style.display = 'block';
+  if (empty) empty.style.display = 'none';
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const labels = datasets[0].labels;
+  const pad = {top:20, right:15, bottom:35, left:45};
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+
+  const allVals = datasets.flatMap(d => d.values.filter(v => v !== null));
+  const max = Math.max(...allVals, 0.001);
+  const min = Math.min(...allVals, 0);
+  const range = max - min || 1;
+
+  const xPos = i => pad.left + (i / (labels.length - 1)) * cW;
+  const yPos = v => pad.top + cH - ((v - min) / range) * cH;
+
+  // grid
+  ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + cH * (1 - i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+    const val = min + range * i / 4;
+    ctx.fillStyle = '#aaa'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(val.toFixed(2), pad.left - 4, y + 3);
+  }
+
+  datasets.forEach(ds => {
+    ctx.save();
+    ctx.strokeStyle = ds.color;
+    ctx.lineWidth = ds.lineWidth || 2;
+    if (ds.dash) ctx.setLineDash(ds.dash);
+
+    if (ds.fill) {
+      ctx.fillStyle = ds.fillColor || ds.color + '22';
+      ctx.beginPath();
+      let first = true;
+      ds.values.forEach((v, i) => {
+        if (v === null) return;
+        if (first) { ctx.moveTo(xPos(i), yPos(v)); first = false; }
+        else ctx.lineTo(xPos(i), yPos(v));
+      });
+      ctx.lineTo(xPos(ds.values.length - 1), pad.top + cH);
+      ctx.lineTo(pad.left, pad.top + cH);
+      ctx.closePath(); ctx.fill();
+    }
+
+    ctx.beginPath();
+    let first = true;
+    ds.values.forEach((v, i) => {
+      if (v === null) { first = true; return; }
+      if (first) { ctx.moveTo(xPos(i), yPos(v)); first = false; }
+      else ctx.lineTo(xPos(i), yPos(v));
+    });
+    ctx.stroke();
+
+    // dots
+    if (ds.dot !== false) {
+      ds.values.forEach((v, i) => {
+        if (v === null) return;
+        ctx.beginPath();
+        ctx.arc(xPos(i), yPos(v), 4, 0, Math.PI * 2);
+        ctx.fillStyle = ds.color; ctx.fill();
+      });
+    }
+    ctx.restore();
+  });
+
+  // x labels
+  ctx.fillStyle = '#888'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  const step = Math.max(1, Math.ceil(labels.length / 8));
+  labels.forEach((l, i) => {
+    if (i % step === 0) {
+      const lines = l.split('\n');
+      lines.forEach((line, li) => ctx.fillText(line, xPos(i), H - 20 + li * 11));
+    }
+  });
+
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + cH); ctx.lineTo(pad.left + cW, pad.top + cH); ctx.stroke();
+}
+
+// ===================== App Logic =====================
+let mValues = [];
+let aValues = [];
+const SAMPLE_COUNT = 30000;
+const BINS = 40;
+
+function normalPDF(x, mu, sigma) {
+  return (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+}
+
+function getC(b, limit) {
+  let a = Array.from({length: 15}, () => Math.random() * (limit * 2) - limit);
+  let counts = new Array(15).fill(0);
+  for (let i = 0; i < b; i++) {
+    let p1 = Math.floor(Math.random() * 15);
+    let p2 = Math.floor(Math.random() * 15);
+    while (p1 === p2) p2 = Math.floor(Math.random() * 15);
+    counts[p1]++; counts[p2]++;
+  }
+  let idx = counts.map((v, i) => ({v: a[i], c: v, i})).sort((x, y) => y.c - x.c || Math.random() - 0.5);
+  return {c: (idx[0].v + idx[1].v + idx[2].v + idx[3].v) / 4, all: a, sel: idx.slice(0, 4).map(o => o.i)};
+}
+
+function createBins(vals, limit) {
+  let bins = new Array(BINS).fill(0);
+  vals.forEach(v => {
+    let i = Math.floor(((v + limit) / (limit * 2)) * BINS);
+    bins[Math.max(0, Math.min(BINS - 1, i))]++;
+  });
+  return {
+    labels: Array.from({length: BINS}, (_, i) => (-limit + (limit * 2 / BINS * i)).toFixed(1)),
+    values: bins
+  };
+}
+
+function runManual() {
+  const b = parseInt(document.getElementById('bInput').value);
+  const limit = parseInt(document.querySelector('input[name="rangeLimit"]:checked').value);
+  const res = getC(b, limit);
+  mValues.push(res.c);
+
+  document.getElementById('aDisplay').innerHTML =
+    res.all.map((v, i) => `<div class="num-item ${res.sel.includes(i) ? 'selected' : ''}">${v.toFixed(4)}</div>`).join('');
+  document.getElementById('cDisplay').innerHTML =
+    res.sel.map(i => `<div class="num-item selected">${res.all[i].toFixed(4)}</div>`).join('');
+  document.getElementById('avgResult').innerText = `선택된 4개 평균(C): ${res.c.toFixed(4)}%`;
+
+  drawMChart(limit);
+  drawTChart(b, limit);
+}
+
+function runAuto30000() {
+  const b = parseInt(document.getElementById('bInput').value);
+  const limit = parseInt(document.querySelector('input[name="rangeLimit"]:checked').value);
+  aValues = Array.from({length: SAMPLE_COUNT}, () => getC(b, limit).c);
+  drawAChart(limit);
+  drawTChart(b, limit);
+}
+
+function drawMChart(limit) {
+  const d = createBins(mValues, limit);
+  drawBarChart('manualChart', d.labels, d.values, '#378add', 'manualEmpty');
+}
+
+function drawAChart(limit) {
+  const d = createBins(aValues, limit);
+  drawBarChart('autoChart', d.labels, d.values, '#28a745', 'autoEmpty');
+}
+
+function drawTChart(b, limit) {
+  const sigma = (0.866 * (limit / 3)) / Math.sqrt(Math.max(1, b * 0.45));
+  let labels = [], values = [];
+  for (let x = -limit; x <= limit; x += 0.1) {
+    labels.push(x.toFixed(1));
+    values.push(normalPDF(x, 0, sigma));
+  }
+  drawLineChart('theoryChart', [{labels, values, color: '#ff6384', fill: true, dot: false}], 'theoryEmpty');
+  initTable(limit);
+}
+
+function drawAllCharts() {
+  const b = parseInt(document.getElementById('bInput').value);
+  const limit = parseInt(document.querySelector('input[name="rangeLimit"]:checked').value);
+  if (mValues.length > 0) drawMChart(limit);
+  if (aValues.length > 0) drawAChart(limit);
+  drawTChart(b, limit);
+  drawRateChart();
+}
+
+function initTable(limit) {
+  let zones = [-limit, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, limit];
+  let h = '<th>구간</th>', u = '<td class="row-title">예측(%)</td>';
+  let r = '<td class="row-title">실제(%)</td>', d = '<td class="row-title">오차</td>';
+  let av = '<td class="row-title">비선호도</td>';
+
+  for (let i = 0; i < zones.length - 1; i++) {
+    let s = zones[i], e = zones[i + 1];
+    h += `<th>${s.toFixed(1)}~${e.toFixed(1)}</th>`;
+    u += `<td><input type="number" class="input-prob" id="u-${i}" oninput="calcDiff(${i})"></td>`;
+    let realProb = aValues.length > 0
+      ? (aValues.filter(v => v >= s && v < e).length / SAMPLE_COUNT * 100).toFixed(2) : '0.00';
+    r += `<td class="val-real" id="r-${i}">${realProb}%</td>`;
+    d += `<td id="d-${i}">-</td>`;
+    av += `<td id="a-${i}">-</td>`;
+  }
+  document.getElementById('probHeader').innerHTML = h;
+  document.getElementById('row-user').innerHTML = u;
+  document.getElementById('row-real').innerHTML = r;
+  document.getElementById('row-diff').innerHTML = d;
+  document.getElementById('row-avoid').innerHTML = av;
+}
+
+function calcDiff(idx) {
+  const userVal = parseFloat(document.getElementById(`u-${idx}`).value) || 0;
+  const realVal = parseFloat(document.getElementById(`r-${idx}`).innerText.replace('%', ''));
+  const diff = (realVal - userVal).toFixed(2);
+  const el = document.getElementById(`d-${idx}`);
+  el.innerText = (diff > 0 ? '+' : '') + diff + '%';
+  el.className = diff > 0 ? 'diff-minus' : 'diff-plus';
+  const avoid = document.getElementById(`a-${idx}`);
+  if (userVal <= 0) { avoid.innerText = '-'; avoid.className = ''; return; }
+  const ratio = (realVal / userVal).toFixed(2);
+  avoid.innerText = ratio;
+  avoid.className = ratio < 0.7 ? 'avoid-low' : ratio > 1.3 ? 'avoid-high' : '';
+}
+
+// ===================== History =====================
+let historyData = [];
+try { historyData = JSON.parse(localStorage.getItem('predictHistory') || '[]'); } catch(e) { historyData = []; }
+
+function saveHistory() {
+  const inputs = document.querySelectorAll('.input-prob');
+  const vals = Array.from(inputs).map(inp => parseFloat(inp.value || 0));
+  if (vals.every(v => v === 0)) { alert('예측값을 입력해주세요.'); return; }
+  const projectName = document.getElementById('projectName').value.trim() || '(프로젝트명 없음)';
+  const expectedRate = parseFloat(document.getElementById('expectedRate').value) || null;
+  const resultRate = parseFloat(document.getElementById('resultRate').value) || null;
+  historyData.unshift({id: Date.now(), date: new Date().toLocaleString(), projectName, expectedRate, resultRate, predict: vals, actual: null, diff: null, score: null});
+  updateHistoryUI();
+}
+
+function inputActual(id) {
+  const item = historyData.find(h => h.id === id);
+  if (!item) return;
+  let actual = [];
+  for (let i = 0; i < item.predict.length; i++) {
+    const val = prompt(`${i + 1}구간 실제값 입력`, item.actual?.[i] || 0);
+    actual.push(parseFloat(val || 0));
+  }
+  item.actual = actual;
+  item.diff = actual.map((v, i) => +(v - item.predict[i]).toFixed(2));
+  item.score = item.diff.reduce((a, b) => a + Math.abs(b), 0) / item.diff.length;
+  updateHistoryUI();
+}
+
+function loadHistory(id) {
+  const item = historyData.find(h => h.id === id);
+  if (!item) return;
+  item.predict.forEach((p, i) => {
+    const inp = document.getElementById(`u-${i}`);
+    if (inp) { inp.value = p; calcDiff(i); }
+  });
+}
+
+function deleteHistory(id) {
+  if (confirm('삭제할까요?')) { historyData = historyData.filter(h => h.id !== id); updateHistoryUI(); }
+}
+
+function inputResultRate(id) {
+  const item = historyData.find(h => h.id === id);
+  if (!item) return;
+  const val = prompt('결과 사정율(%)을 입력하세요', item.resultRate != null ? item.resultRate : '');
+  if (val === null) return;
+  item.resultRate = parseFloat(val) || null;
+  updateHistoryUI();
+}
+
+function updateHistoryUI() {
+  try { localStorage.setItem('predictHistory', JSON.stringify(historyData)); } catch(e) {}
+  const container = document.getElementById('historyList');
+  container.innerHTML = '<div class="panel-title">PREDICTION HISTORY</div>';
+  historyData.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    let scoreText = '결과 대기중', scoreClass = '';
+    if (item.score !== null) { scoreText = `평균오차 ${item.score.toFixed(2)}%`; scoreClass = item.score < 5 ? 'score-good' : 'score-bad'; }
+    const diffText = item.diff ? item.diff.map(v => `${v > 0 ? '+' : ''}${v}%`).join(' | ') : '-';
+    div.innerHTML = `
+      <div class="history-date">${item.date}</div>
+      <div class="history-data">
+        <div><span class="meta-tag">${item.projectName || '(프로젝트명 없음)'}</span></div>
+        <div class="history-meta">
+          <span>예상 사정율: <span class="rate-val">${item.expectedRate != null ? item.expectedRate + '%' : '미입력'}</span></span>
+          <span>결과 사정율: <span class="rate-result" id="rr-${item.id}">${item.resultRate != null ? item.resultRate + '%' : '미입력'}</span></span>
+        </div>
+        <div>예측: ${item.predict.join('% | ')}%</div>
+        <div>오차: ${diffText}</div>
+        <div class="${scoreClass}">${scoreText}</div>
+      </div>
+      <div class="history-btns">
+        <button onclick="loadHistory(${item.id})">불러오기</button>
+        <button class="btn-real" onclick="inputActual(${item.id})">실제값 입력</button>
+        <button style="background:#e8f5e9;color:#28a745;border:1px solid #a5d6a7" onclick="inputResultRate(${item.id})">사정율 입력</button>
+        <button style="background:#ffdddd;color:#d73a49" onclick="deleteHistory(${item.id})">삭제</button>
+      </div>`;
+    container.appendChild(div);
+  });
+  drawRateChart();
+}
+
+function drawRateChart() {
+  const items = [...historyData].filter(h => h.expectedRate != null || h.resultRate != null).sort((a, b) => a.id - b.id);
+  const canvas = document.getElementById('rateChart');
+  const empty = document.getElementById('rateEmpty');
+
+  if (items.length === 0) {
+    if (canvas) canvas.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    document.getElementById('rateStats').innerHTML = '<span style="color:#aaa">저장된 사정율 데이터가 없습니다.</span>';
+    return;
+  }
+
+  const labels = items.map(h => {
+    const d = new Date(h.id);
+    return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}\n${h.projectName || ''}`;
+  });
+
+  drawLineChart('rateChart', [
+    {labels, values: items.map(h => h.expectedRate != null ? h.expectedRate : null), color: '#378add', fill: false},
+    {labels, values: items.map(h => h.resultRate != null ? h.resultRate : null), color: '#28a745', fill: false},
+    {labels, values: items.map(h => h.expectedRate != null && h.resultRate != null ? +(h.resultRate - h.expectedRate).toFixed(3) : null), color: '#ff6384', fill: false, dash: [5, 4]}
+  ], 'rateEmpty');
+
+  const gapData = items.map(h => h.expectedRate != null && h.resultRate != null ? +(h.resultRate - h.expectedRate).toFixed(3) : null).filter(v => v !== null);
+  const statsEl = document.getElementById('rateStats');
+  if (gapData.length === 0) { statsEl.innerHTML = ''; return; }
+  const avgGap = (gapData.reduce((a, b) => a + b, 0) / gapData.length).toFixed(3);
+  const absAvg = (gapData.reduce((a, b) => a + Math.abs(b), 0) / gapData.length).toFixed(3);
+  const maxGap = Math.max(...gapData).toFixed(3);
+  const minGap = Math.min(...gapData).toFixed(3);
+  const stat = (label, val, color) => `<div style="background:#f9f9f9;border-radius:8px;padding:8px 14px;border:1px solid #eee;text-align:center"><div style="font-size:10px;color:#999;margin-bottom:3px">${label}</div><div style="font-weight:700;font-size:15px;color:${color}">${val}%</div></div>`;
+  const avgColor = parseFloat(avgGap) >= 0 ? '#d73a49' : '#0366d6';
+  statsEl.innerHTML =
+    stat('평균 갭 (결과-예상)', (parseFloat(avgGap) >= 0 ? '+' : '') + avgGap, avgColor) +
+    stat('평균 절대 오차', absAvg, '#888') +
+    stat('최대 갭 (과소예측)', '+' + maxGap, '#d73a49') +
+    stat('최소 갭 (과대예측)', minGap, '#0366d6') +
+    `<div style="background:#f0f8ff;border-radius:8px;padding:8px 14px;border:1px solid #d0e8ff;text-align:center"><div style="font-size:10px;color:#999;margin-bottom:3px">분석 건수</div><div style="font-weight:700;font-size:15px;color:#378add">${gapData.length}건</div></div>`;
+}
+
+function resetAll() {
+  mValues = []; aValues = [];
+  document.getElementById('manualChart').style.display = 'none';
+  document.getElementById('manualEmpty').style.display = 'flex';
+  document.getElementById('autoChart').style.display = 'none';
+  document.getElementById('autoEmpty').style.display = 'flex';
+  document.getElementById('theoryChart').style.display = 'none';
+  document.getElementById('theoryEmpty').style.display = 'flex';
+  initTable(3);
+}
+
+// Init
+window.onload = function() {
+  initTable(3);
+  updateHistoryUI();
+  // resize 시 재렌더
+  window.addEventListener('resize', () => {
+    const limit = parseInt(document.querySelector('input[name="rangeLimit"]:checked').value);
+    const b = parseInt(document.getElementById('bInput').value);
+    if (mValues.length > 0) drawMChart(limit);
+    if (aValues.length > 0) drawAChart(limit);
+    drawTChart(b, limit);
+    drawRateChart();
+  });
+};
+</script>
+
+
+
+</body></html>
